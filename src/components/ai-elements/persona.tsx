@@ -14,7 +14,7 @@ import {
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 export type PersonaState =
-  | "idle"
+  | ""
   | "listening"
   | "thinking"
   | "speaking"
@@ -174,7 +174,7 @@ PersonaWithoutModel.displayName = "PersonaWithoutModel";
 export const Persona: FC<PersonaProps> = memo(
   ({
     variant = "obsidian",
-    state = "idle",
+    state = "",
     onLoad,
     onLoadError,
     onReady,

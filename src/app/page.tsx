@@ -1,65 +1,86 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import Link from 'next/link'
+import { useEffect, useMemo, useRef } from 'react'
+import { Button } from '@/components/ui/button'
+import { Orb } from '@/components/ui/orb'
+import { AVAILABLE_VOICES, ORB_COLORS_BY_VOICE } from '@/app/chat/constants'
+
+const TRANSITION_MS = 4200
+
+const hexToRgb = (hex: string) => {
+  const normalized = hex.replace('#', '')
+  const value = Number.parseInt(normalized, 16)
+
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255,
+  }
+}
+
+const rgbToHex = (r: number, g: number, b: number) => {
+  const toHex = (value: number) => Math.round(value).toString(16).padStart(2, '0')
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
+
+const interpolateHex = (from: string, to: string, t: number) => {
+  const start = hexToRgb(from)
+  const end = hexToRgb(to)
+
+  return rgbToHex(
+    start.r + (end.r - start.r) * t,
+    start.g + (end.g - start.g) * t,
+    start.b + (end.b - start.b) * t
+  )
+}
+
+export default function HomePage() {
+  const voiceIds = useMemo(() => AVAILABLE_VOICES.map(voice => voice.id), [])
+  const colorsRef = useRef<[string, string]>(ORB_COLORS_BY_VOICE[voiceIds[0]])
+
+  useEffect(() => {
+    let frameId = 0
+
+    const animate = (time: number) => {
+      const total = voiceIds.length
+      const segment = Math.floor(time / TRANSITION_MS) % total
+      const nextSegment = (segment + 1) % total
+      const segmentStart = Math.floor(time / TRANSITION_MS) * TRANSITION_MS
+      const t = Math.min(1, (time - segmentStart) / TRANSITION_MS)
+
+      const fromVoiceId = voiceIds[segment]
+      const toVoiceId = voiceIds[nextSegment]
+      const fromColors = ORB_COLORS_BY_VOICE[fromVoiceId]
+      const toColors = ORB_COLORS_BY_VOICE[toVoiceId]
+
+      colorsRef.current = [
+        interpolateHex(fromColors[0], toColors[0], t),
+        interpolateHex(fromColors[1], toColors[1], t),
+      ]
+
+      frameId = window.requestAnimationFrame(animate)
+    }
+
+    frameId = window.requestAnimationFrame(animate)
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+    }
+  }, [voiceIds])
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-6 text-foreground sm:py-8">
+      <div className="flex w-full max-w-4xl flex-col items-center gap-6 sm:gap-8">
+
+        <div className="aspect-square w-full max-w-80 sm:max-w-110">
+          <Orb className="size-full" colorsRef={colorsRef} seed={11} />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+
+        <Button asChild size="lg" className="w-full max-w-xs rounded-full px-6 sm:w-auto sm:px-8">
+          <Link href="/chat">Abrir assistente de voz</Link>
+        </Button>
+      </div>
+    </main>
+  )
 }
